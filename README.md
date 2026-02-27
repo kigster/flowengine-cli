@@ -1,5 +1,7 @@
 # FlowEngine CLI
 
+[![RSpec](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml) [![RuboCop](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml)
+
 Terminal-based interactive wizard runner for [FlowEngine](https://github.com/kigster/flowengine) flows. Define your flow once, run it in the terminal with rich TTY prompts, export Mermaid diagrams, and validate flow definitions -- all from the command line.
 
 FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` core gem. The core gem knows nothing about terminals, databases, or web frameworks. This gem provides the terminal interface.
