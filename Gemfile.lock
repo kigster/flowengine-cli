@@ -12,6 +12,7 @@ PATH
       tty-box (~> 0.7)
       tty-prompt (~> 0.23)
       tty-screen (~> 0.8)
+      yard
 
 GEM
   remote: https://rubygems.org/
@@ -125,6 +126,7 @@ GEM
     unicode-display_width (2.6.0)
     unicode_utils (1.4.0)
     wisper (2.0.1)
+    yard (0.9.38)
 
 PLATFORMS
   arm64-darwin-24
