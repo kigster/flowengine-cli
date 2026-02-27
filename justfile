@@ -3,8 +3,9 @@ set shell := ["bash", "-c"]
 set dotenv-load
 
 # Boot the app
-run:
-    foreman start
+test:
+    @bundle check ||  bundle install -j 12
+    @bundle exec rspec --format documentation
 
 # Setup Ruby dependencies
 setup-ruby:

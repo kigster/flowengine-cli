@@ -20,7 +20,7 @@ gem install flowengine-cli
 
 ### Requirements
 
-- Ruby >= 3.2.0
+- Ruby >= 4.0.1
 - [flowengine](https://github.com/kigster/flowengine) ~> 0.1
 
 ## Quick Start
@@ -114,8 +114,8 @@ Loads a flow definition, presents each step as an interactive terminal prompt, a
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃                FlowEngine Interactive Wizard                     ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┃                FlowEngine Interactive Wizard                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
   Step 1: filing_status
   ────────────────────────────────────

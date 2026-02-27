@@ -136,9 +136,9 @@ DEPENDENCIES
   irb
   rake (~> 13.0)
   rspec (~> 3.0)
-  rspec-its (~> 2.0, >= 0)
+  rspec-its
   rubocop (~> 1.21)
-  simplecov (~> 0.22, >= 0)
+  simplecov
 
 BUNDLED WITH
    2.7.2
