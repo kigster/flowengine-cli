@@ -1,0 +1,42 @@
+set shell := ["bash", "-c"]
+
+set dotenv-load
+
+# Boot the app
+run:
+    foreman start
+
+# Setup Ruby dependencies
+setup-ruby:
+    #!/usr/bin/env bash
+    [[ -d ~/.rbenv ]] || git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+    [[ -d ~/.rbenv/plugins/ruby-build ]] || git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+    cd ~/.rbenv/plugins/ruby-build && git pull && cd - >/dev/null
+    echo -n "Checking if Ruby $(cat .ruby-version | tr -d '\n') is already installed..."
+    rbenv install -s "$(cat .ruby-version | tr -d '\n')" >/dev/null 2>&1 && echo "yes" || echo "it wasn't, but now it is"
+    bundle check || bundle install -j 12
+
+# Setup NodeJS dependencies with Volta
+setup-node:
+    @bash -c "command -v volta > dev/null 2>&1 || brew install volta"
+    @volta install node
+    @volta install yarn
+
+# Setup everything
+setup: setup-node setup-ruby
+
+cli *ARGS:
+    ./cli {{ARGS}}
+
+validate-valid-json:
+    ./cli validate-json -f VALID-JSON/sample.json -s VALID-JSON/schema.json
+
+format:
+    @bundle exec rubocop -a
+    @bundle exec rubocop --auto-gen-config
+
+lint: 
+    @bundle exec rubocop
+
+check-all: lint test
+
