@@ -6,6 +6,32 @@ Terminal-based interactive wizard runner for [FlowEngine](https://github.com/kig
 
 FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` core gem. The core gem knows nothing about terminals, databases, or web frameworks. This gem provides the terminal interface.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+  - [`run` -- Interactive Wizard](#run----interactive-wizard)
+  - [`graph` -- Export Mermaid Diagram](#graph----export-mermaid-diagram)
+  - [`validate` -- Validate Flow Definition](#validate----validate-flow-definition)
+  - [`version` -- Print Version](#version----print-version)
+- [Step Types & TTY Rendering](#step-types--tty-rendering)
+- [Flow Definition DSL](#flow-definition-dsl)
+  - [Available Rules](#available-rules)
+  - [Composing Rules](#composing-rules)
+- [In-Depth Walkthrough: Tax Intake](#in-depth-walkthrough-tax-intake)
+  - [The Flow Definition](#the-flow-definition)
+  - [Scenario 1: Simple W2 Filer](#scenario-1-simple-w2-filer)
+  - [Scenario 2: Business Owner with Crypto](#scenario-2-business-owner-with-crypto)
+  - [Scenario 3: Married Investor with Rentals and Foreign Accounts](#scenario-3-married-investor-with-rentals-and-foreign-accounts)
+  - [Scenario 4: Complex Multi-Business Filer with Charitable Donations](#scenario-4-complex-multi-business-filer-with-charitable-donations)
+- [In-Depth Walkthrough: Customer Onboarding](#in-depth-walkthrough-customer-onboarding)
+- [Graph Visualization Examples](#graph-visualization-examples)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Installation
 
 Add to your Gemfile:
@@ -70,21 +96,7 @@ end
 flowengine-cli run intake.rb
 ```
 
-The CLI walks you through each step interactively, rendering the appropriate TTY prompt for each step type. When complete, it outputs the collected answers as JSON:
-
-```json
-{
-  "flow_file": "intake.rb",
-  "path_taken": ["filing_status", "income_types", "business_details", "summary"],
-  "answers": {
-    "filing_status": "Married",
-    "income_types": ["W2", "Business"],
-    "business_details": { "LLC": 2, "SCorp": 1, "CCorp": 0 }
-  },
-  "steps_completed": 4,
-  "completed_at": "2026-02-26T20:15:00-08:00"
-}
-```
+The CLI walks you through each step interactively, rendering the appropriate TTY prompt for each step type. When complete, it outputs the collected answers as JSON.
 
 ### 3. Save results to a file
 
@@ -116,18 +128,18 @@ Loads a flow definition, presents each step as an interactive terminal prompt, a
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃                FlowEngine Interactive Wizard                   ┃
+┃                FlowEngine Interactive Wizard                    ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
   Step 1: filing_status
-  ────────────────────────────────────
+  ────────────────────────────────────────
   What is your filing status? (Use ↑/↓ arrow keys, press Enter to select)
   > Single
     Married
     HeadOfHousehold
 
   Step 2: income_types
-  ────────────────────────────────────
+  ────────────────────────────────────────
   Select all income types that apply: (Use ↑/↓ arrow keys, press Space to select)
     ◯ W2
   > ◉ 1099
@@ -136,18 +148,42 @@ Loads a flow definition, presents each step as an interactive terminal prompt, a
     ◯ Rental
 
   Step 3: business_details
-  ────────────────────────────────────
+  ────────────────────────────────────────
   How many of each business type?
 
     LLC: 2
     SCorp: 1
     CCorp: 0
 
+  Step 4: summary
+  ────────────────────────────────────────
+
+  Thank you for completing the intake!
+  Press any key to continue...
+
 ┌ SUCCESS ─────────────────────────────────────────────────────────┐
 │                      Flow completed!                             │
 └──────────────────────────────────────────────────────────────────┘
-{ ... JSON output ... }
 ```
+
+Then the JSON output is printed to stdout (and optionally saved to a file):
+
+```json
+{
+  "flow_file": "intake.rb",
+  "path_taken": ["filing_status", "income_types", "business_details", "summary"],
+  "answers": {
+    "filing_status": "Single",
+    "income_types": ["1099", "Business"],
+    "business_details": { "LLC": 2, "SCorp": 1, "CCorp": 0 },
+    "summary": null
+  },
+  "steps_completed": 4,
+  "completed_at": "2026-02-26T20:15:00-08:00"
+}
+```
+
+> **Note:** Display steps (like `summary`) record `null` in the answers since they are informational only.
 
 ---
 
@@ -189,6 +225,7 @@ Save to a file and render with any Mermaid-compatible tool (GitHub, VS Code, mer
 
 ```bash
 flowengine-cli graph intake.rb -o flow.mmd
+# => Diagram written to flow.mmd
 ```
 
 ---
@@ -301,12 +338,15 @@ transition to: :special_path,
            )
 ```
 
-## Full Example: Tax Intake Flow
+## In-Depth Walkthrough: Tax Intake
 
-Here is a realistic 17-step tax preparation intake flow demonstrating conditional branching, composite rules, and multiple paths:
+This section walks through a realistic 17-step tax preparation intake flow, showing four different user journeys through the same flow definition. Each scenario demonstrates different branching paths, and the resulting collected data.
+
+### The Flow Definition
+
+Save this as `tax_intake.rb`:
 
 ```ruby
-# tax_intake.rb
 FlowEngine.define do
   start :filing_status
 
@@ -427,25 +467,570 @@ FlowEngine.define do
   end
 
   step :review do
-    type :text
-    question "Thank you! Please review your information. Type 'confirm' to submit."
+    type :display
+    question "Thank you! Your intake is complete. We will be in touch shortly."
   end
 end
 ```
 
-Run it:
+Now let's see how four different users travel through this flow, and what the collected data looks like for each.
 
-```bash
-flowengine-cli run tax_intake.rb -o tax_results.json
+---
+
+### Scenario 1: Simple W2 Filer
+
+A single person with only W2 income, no investments, no businesses -- the simplest path.
+
+**Terminal session:**
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                FlowEngine Interactive Wizard                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+  Step 1: filing_status
+  ────────────────────────────────────────
+  What is your filing status for 2025?
+  > single
+    married_filing_jointly
+    married_filing_separately
+    head_of_household
+
+  Step 2: dependents
+  ────────────────────────────────────────
+  How many dependents do you have? 0
+
+  Step 3: income_types
+  ────────────────────────────────────────
+  Select all income types that apply to you in 2025.
+  > ◉ W2
+    ◯ 1099
+    ◯ Business
+    ◯ Investment
+    ◯ Rental
+    ◯ Retirement
+
+  Step 4: state_filing
+  ────────────────────────────────────────
+  Which states do you need to file in?
+  > ◉ California
+    ◯ NewYork
+    ◯ Texas
+    ◯ Florida
+    ◯ Illinois
+    ◯ Other
+
+  Step 5: foreign_accounts
+  ────────────────────────────────────────
+  Do you have any foreign financial accounts?
+    yes
+  > no
+
+  Step 6: deduction_types
+  ────────────────────────────────────────
+  Which additional deductions apply to you?
+    ◯ Medical
+    ◯ Charitable
+    ◯ Education
+    ◯ Mortgage
+  > ◉ None
+
+  Step 7: contact_info
+  ────────────────────────────────────────
+  Please provide your contact information (name, email, phone).
+  Jane Smith, jane@example.com, 415-555-1234
+
+  Step 8: review
+  ────────────────────────────────────────
+
+  Thank you! Your intake is complete. We will be in touch shortly.
+  Press any key to continue...
+
+┌ SUCCESS ─────────────────────────────────────────────────────────┐
+│                      Flow completed!                             │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-Visualize it:
+**Collected data (`-o simple_w2.json`):**
 
-```bash
-flowengine-cli graph tax_intake.rb -o tax_flow.mmd
+```json
+{
+  "flow_file": "tax_intake.rb",
+  "path_taken": [
+    "filing_status",
+    "dependents",
+    "income_types",
+    "state_filing",
+    "foreign_accounts",
+    "deduction_types",
+    "contact_info",
+    "review"
+  ],
+  "answers": {
+    "filing_status": "single",
+    "dependents": 0,
+    "income_types": ["W2"],
+    "state_filing": ["California"],
+    "foreign_accounts": "no",
+    "deduction_types": ["None"],
+    "contact_info": "Jane Smith, jane@example.com, 415-555-1234",
+    "review": null
+  },
+  "steps_completed": 8,
+  "completed_at": "2026-02-26T14:30:00-08:00"
+}
 ```
 
-The Mermaid output renders as:
+**Steps skipped:** `business_count`, `complex_business_info`, `business_details`, `investment_details`, `crypto_details`, `rental_details`, `foreign_account_details`, `charitable_amount`, `charitable_documentation` -- 9 of 17 steps skipped because the user's answers didn't trigger those branches.
+
+---
+
+### Scenario 2: Business Owner with Crypto
+
+A single person who owns 1 business and has crypto investments.
+
+**Terminal session:**
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                FlowEngine Interactive Wizard                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+  Step 1: filing_status
+  ────────────────────────────────────────
+  What is your filing status for 2025?
+  > single
+
+  Step 2: dependents
+  ────────────────────────────────────────
+  How many dependents do you have? 0
+
+  Step 3: income_types
+  ────────────────────────────────────────
+  Select all income types that apply to you in 2025.
+    ◉ W2
+    ◯ 1099
+  > ◉ Business
+    ◉ Investment
+    ◯ Rental
+    ◯ Retirement
+
+  Step 4: business_count
+  ────────────────────────────────────────
+  How many total businesses do you own or are a partner in? 1
+
+  Step 5: business_details
+  ────────────────────────────────────────
+  How many of each business type do you own?
+
+    RealEstate: 0
+    SCorp: 0
+    CCorp: 0
+    Trust: 0
+    LLC: 1
+
+  Step 6: investment_details
+  ────────────────────────────────────────
+  What types of investments do you hold?
+    ◉ Stocks
+    ◯ Bonds
+  > ◉ Crypto
+    ◯ RealEstate
+    ◯ MutualFunds
+
+  Step 7: crypto_details
+  ────────────────────────────────────────
+  Describe your cryptocurrency transactions (exchanges, approximate transaction count).
+  Coinbase and Kraken, approximately 150 trades in 2025
+
+  Step 8: state_filing
+  ────────────────────────────────────────
+  Which states do you need to file in?
+  > ◉ California
+    ◯ NewYork
+    ◯ Texas
+    ◯ Florida
+    ◯ Illinois
+    ◯ Other
+
+  Step 9: foreign_accounts
+  ────────────────────────────────────────
+  Do you have any foreign financial accounts?
+    yes
+  > no
+
+  Step 10: deduction_types
+  ────────────────────────────────────────
+  Which additional deductions apply to you?
+    ◯ Medical
+    ◯ Charitable
+    ◯ Education
+    ◯ Mortgage
+  > ◉ None
+
+  Step 11: contact_info
+  ────────────────────────────────────────
+  Please provide your contact information (name, email, phone).
+  Alex Rivera, alex@startup.io, 510-555-9876
+
+  Step 12: review
+  ────────────────────────────────────────
+
+  Thank you! Your intake is complete. We will be in touch shortly.
+  Press any key to continue...
+
+┌ SUCCESS ─────────────────────────────────────────────────────────┐
+│                      Flow completed!                             │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Collected data (`-o business_crypto.json`):**
+
+```json
+{
+  "flow_file": "tax_intake.rb",
+  "path_taken": [
+    "filing_status",
+    "dependents",
+    "income_types",
+    "business_count",
+    "business_details",
+    "investment_details",
+    "crypto_details",
+    "state_filing",
+    "foreign_accounts",
+    "deduction_types",
+    "contact_info",
+    "review"
+  ],
+  "answers": {
+    "filing_status": "single",
+    "dependents": 0,
+    "income_types": ["W2", "Business", "Investment"],
+    "business_count": 1,
+    "business_details": {
+      "RealEstate": 0,
+      "SCorp": 0,
+      "CCorp": 0,
+      "Trust": 0,
+      "LLC": 1
+    },
+    "investment_details": ["Stocks", "Crypto"],
+    "crypto_details": "Coinbase and Kraken, approximately 150 trades in 2025",
+    "state_filing": ["California"],
+    "foreign_accounts": "no",
+    "deduction_types": ["None"],
+    "contact_info": "Alex Rivera, alex@startup.io, 510-555-9876",
+    "review": null
+  },
+  "steps_completed": 12,
+  "completed_at": "2026-02-26T15:45:00-08:00"
+}
+```
+
+Notice how selecting "Business" at `income_types` triggered the `business_count` -> `business_details` branch, and selecting "Investment" continued the flow into `investment_details`. Since the user selected "Crypto" there, the `crypto_details` step was reached. The engine evaluated transitions top-to-bottom, taking the first match.
+
+---
+
+### Scenario 3: Married Investor with Rentals and Foreign Accounts
+
+A married person filing jointly, with investments, rental properties, and foreign bank accounts.
+
+**Collected data (`-o married_investor.json`):**
+
+```json
+{
+  "flow_file": "tax_intake.rb",
+  "path_taken": [
+    "filing_status",
+    "dependents",
+    "income_types",
+    "investment_details",
+    "rental_details",
+    "state_filing",
+    "foreign_accounts",
+    "foreign_account_details",
+    "deduction_types",
+    "charitable_amount",
+    "contact_info",
+    "review"
+  ],
+  "answers": {
+    "filing_status": "married_filing_jointly",
+    "dependents": 2,
+    "income_types": ["W2", "Investment", "Rental"],
+    "investment_details": ["Stocks", "Bonds", "MutualFunds"],
+    "rental_details": {
+      "Residential": 2,
+      "Commercial": 0,
+      "Vacation": 1
+    },
+    "state_filing": ["California", "NewYork"],
+    "foreign_accounts": "yes",
+    "foreign_account_details": 3,
+    "deduction_types": ["Medical", "Charitable", "Mortgage"],
+    "charitable_amount": 3500,
+    "contact_info": "Maria & Carlos Reyes, reyes@email.com, 212-555-4567",
+    "review": null
+  },
+  "steps_completed": 12,
+  "completed_at": "2026-02-26T16:20:00-08:00"
+}
+```
+
+Key branching decisions in this path:
+
+1. **`income_types`** -- No "Business" was selected, so `business_count`/`business_details` were skipped entirely. "Investment" was the first matching rule, so the flow went to `investment_details`.
+2. **`investment_details`** -- No "Crypto", but "Rental" was in `income_types`, so the flow continued to `rental_details`.
+3. **`foreign_accounts`** -- User answered "yes", triggering the `foreign_account_details` step.
+4. **`deduction_types`** -- "Charitable" was selected, activating the `charitable_amount` step. But the amount (3,500) was not greater than 5,000, so `charitable_documentation` was skipped.
+
+---
+
+### Scenario 4: Complex Multi-Business Filer with Charitable Donations
+
+A head of household with 4 businesses, investments, rentals, foreign accounts, and over $5,000 in charitable giving -- the longest possible path through the flow.
+
+**Collected data (`-o complex_filer.json`):**
+
+```json
+{
+  "flow_file": "tax_intake.rb",
+  "path_taken": [
+    "filing_status",
+    "dependents",
+    "income_types",
+    "business_count",
+    "complex_business_info",
+    "business_details",
+    "investment_details",
+    "crypto_details",
+    "rental_details",
+    "state_filing",
+    "foreign_accounts",
+    "foreign_account_details",
+    "deduction_types",
+    "charitable_amount",
+    "charitable_documentation",
+    "contact_info",
+    "review"
+  ],
+  "answers": {
+    "filing_status": "head_of_household",
+    "dependents": 3,
+    "income_types": ["W2", "1099", "Business", "Investment", "Rental", "Retirement"],
+    "business_count": 4,
+    "complex_business_info": "Primary EIN: 12-3456789. Two LLCs (consulting, real estate), one S-Corp (software), one C-Corp (manufacturing)",
+    "business_details": {
+      "RealEstate": 1,
+      "SCorp": 1,
+      "CCorp": 1,
+      "Trust": 0,
+      "LLC": 2
+    },
+    "investment_details": ["Stocks", "Bonds", "Crypto", "RealEstate", "MutualFunds"],
+    "crypto_details": "Binance and Coinbase, ~400 transactions. Includes DeFi staking and NFT sales.",
+    "rental_details": {
+      "Residential": 3,
+      "Commercial": 1,
+      "Vacation": 0
+    },
+    "state_filing": ["California", "Texas", "Florida"],
+    "foreign_accounts": "yes",
+    "foreign_account_details": 5,
+    "deduction_types": ["Medical", "Charitable", "Education", "Mortgage"],
+    "charitable_amount": 12000,
+    "charitable_documentation": "Red Cross $5,000; Habitat for Humanity $4,000; Local food bank $3,000",
+    "contact_info": "David Park, dpark@enterprise.com, 650-555-8901",
+    "review": null
+  },
+  "steps_completed": 17,
+  "completed_at": "2026-02-26T17:05:00-08:00"
+}
+```
+
+This user hit all 17 steps -- every branch was activated:
+
+| Branch Trigger | Rule | Steps Activated |
+|---|---|---|
+| "Business" selected in `income_types` | `contains(:income_types, "Business")` | `business_count` |
+| `business_count` > 2 | `greater_than(:business_count, 2)` | `complex_business_info` |
+| "Investment" selected in `income_types` | `contains(:income_types, "Investment")` | `investment_details` |
+| "Crypto" selected in `investment_details` | `contains(:investment_details, "Crypto")` | `crypto_details` |
+| "Rental" selected in `income_types` | `contains(:income_types, "Rental")` | `rental_details` |
+| "yes" for `foreign_accounts` | `equals(:foreign_accounts, "yes")` | `foreign_account_details` |
+| "Charitable" selected in `deduction_types` | `contains(:deduction_types, "Charitable")` | `charitable_amount` |
+| `charitable_amount` > 5000 | `greater_than(:charitable_amount, 5000)` | `charitable_documentation` |
+
+---
+
+### Comparing the Paths
+
+| | Scenario 1 | Scenario 2 | Scenario 3 | Scenario 4 |
+|---|---|---|---|---|
+| **Persona** | Simple W2 | Business + Crypto | Married Investor | Complex Filer |
+| **Steps completed** | 8 | 12 | 12 | 17 (all) |
+| **Steps skipped** | 9 | 5 | 5 | 0 |
+| **Business branch** | -- | Yes (1 biz) | -- | Yes (4 biz + complex) |
+| **Investment branch** | -- | Yes | Yes | Yes |
+| **Crypto sub-branch** | -- | Yes | -- | Yes |
+| **Rental branch** | -- | -- | Yes | Yes |
+| **Foreign accounts** | -- | -- | Yes | Yes |
+| **Charitable branch** | -- | -- | Partial (< $5k) | Full (> $5k) |
+
+## In-Depth Walkthrough: Customer Onboarding
+
+Tax intake isn't the only use case. Here is a customer onboarding flow showing different step types.
+
+Save as `onboarding.rb`:
+
+```ruby
+FlowEngine.define do
+  start :welcome
+
+  step :welcome do
+    type :display
+    question "Welcome to Acme Corp onboarding! We'll collect a few details to get you set up."
+    transition to: :account_type
+  end
+
+  step :account_type do
+    type :single_select
+    question "What type of account are you creating?"
+    options %w[Personal Business Enterprise]
+    transition to: :company_info, if_rule: any(
+      equals(:account_type, "Business"),
+      equals(:account_type, "Enterprise")
+    )
+    transition to: :personal_info
+  end
+
+  step :company_info do
+    type :text
+    question "What is your company name?"
+    transition to: :team_size
+  end
+
+  step :team_size do
+    type :number
+    question "How many team members will use the platform?"
+    transition to: :features
+  end
+
+  step :personal_info do
+    type :text
+    question "What is your full name?"
+    transition to: :features
+  end
+
+  step :features do
+    type :multi_select
+    question "Which features are you interested in?"
+    options %w[Analytics Reporting API Integrations Support]
+    transition to: :enterprise_sla, if_rule: all(
+      equals(:account_type, "Enterprise"),
+      contains(:features, "Support")
+    )
+    transition to: :confirm
+  end
+
+  step :enterprise_sla do
+    type :boolean
+    question "Do you require an SLA agreement?"
+    transition to: :confirm
+  end
+
+  step :confirm do
+    type :display
+    question "All set! Your account will be provisioned shortly."
+  end
+end
+```
+
+**Run and save:**
+
+```bash
+flowengine-cli run onboarding.rb -o onboarding_result.json
+```
+
+**Example: Enterprise user who wants Support + SLA:**
+
+```json
+{
+  "flow_file": "onboarding.rb",
+  "path_taken": [
+    "welcome",
+    "account_type",
+    "company_info",
+    "team_size",
+    "features",
+    "enterprise_sla",
+    "confirm"
+  ],
+  "answers": {
+    "welcome": null,
+    "account_type": "Enterprise",
+    "company_info": "Globex Corporation",
+    "team_size": 50,
+    "features": ["Analytics", "API", "Support"],
+    "enterprise_sla": true,
+    "confirm": null
+  },
+  "steps_completed": 7,
+  "completed_at": "2026-02-26T18:00:00-08:00"
+}
+```
+
+**Example: Personal user:**
+
+```json
+{
+  "flow_file": "onboarding.rb",
+  "path_taken": [
+    "welcome",
+    "account_type",
+    "personal_info",
+    "features",
+    "confirm"
+  ],
+  "answers": {
+    "welcome": null,
+    "account_type": "Personal",
+    "personal_info": "Jordan Lee",
+    "features": ["Analytics", "Reporting"],
+    "confirm": null
+  },
+  "steps_completed": 5,
+  "completed_at": "2026-02-26T18:05:00-08:00"
+}
+```
+
+The Personal user skipped `company_info`, `team_size`, and `enterprise_sla` entirely -- those steps were never reached because the transition rules didn't match.
+
+## Graph Visualization Examples
+
+### Validate, then visualize
+
+A typical workflow is to validate first, then export the graph:
+
+```bash
+$ flowengine-cli validate tax_intake.rb
+Flow definition is valid!
+  Start step: filing_status
+  Total steps: 17
+  Steps: filing_status, dependents, income_types, business_count,
+         complex_business_info, business_details, investment_details,
+         crypto_details, rental_details, state_filing, foreign_accounts,
+         foreign_account_details, deduction_types, charitable_amount,
+         charitable_documentation, contact_info, review
+
+$ flowengine-cli graph tax_intake.rb -o tax_flow.mmd
+Diagram written to tax_flow.mmd
+```
+
+### Full Mermaid diagram for tax intake
+
+The exported Mermaid diagram for the 17-step tax intake:
 
 ```mermaid
 flowchart TD
@@ -493,8 +1078,10 @@ flowchart TD
   charitable_documentation --> contact_info
   contact_info["Please provide your contact information..."]
   contact_info --> review
-  review["Thank you! Please review your information."]
+  review["Thank you! Your intake is complete."]
 ```
+
+Paste this into [mermaid.live](https://mermaid.live), a GitHub Markdown file, or any Mermaid-compatible renderer to see the flow as a visual graph.
 
 ## Architecture
 
@@ -527,6 +1114,43 @@ The core `flowengine` gem has **zero UI dependencies**. It provides the DSL, rul
 2. **Renders** each step type to the appropriate TTY::Prompt widget via `Renderer`
 3. **Drives** the engine loop until completion
 4. **Outputs** results as structured JSON
+
+### JSON Output Structure
+
+Every `run` command produces JSON with a consistent structure:
+
+```json
+{
+  "flow_file": "path/to/flow.rb",
+  "path_taken": ["step_a", "step_b", "step_c"],
+  "answers": {
+    "step_a": "<value depends on step type>",
+    "step_b": "<value depends on step type>"
+  },
+  "steps_completed": 3,
+  "completed_at": "2026-02-26T20:15:00-08:00"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `flow_file` | `String` | The flow definition file that was executed |
+| `path_taken` | `Array<String>` | Ordered list of step IDs the user visited |
+| `answers` | `Hash` | Map of step ID to the user's answer (type varies by step) |
+| `steps_completed` | `Integer` | Total number of steps the user went through |
+| `completed_at` | `String` | ISO 8601 timestamp of when the flow finished |
+
+**Answer types by step:**
+
+| Step Type | Answer Type | Example |
+|-----------|-------------|---------|
+| `:single_select` | `String` | `"Married"` |
+| `:multi_select` | `Array<String>` | `["W2", "Business"]` |
+| `:number_matrix` | `Hash<String, Integer>` | `{"LLC": 2, "SCorp": 1}` |
+| `:text` | `String` | `"Jane Smith, jane@example.com"` |
+| `:number` | `Integer` | `42` |
+| `:boolean` | `Boolean` | `true` |
+| `:display` | `null` | `null` |
 
 ## Development
 
