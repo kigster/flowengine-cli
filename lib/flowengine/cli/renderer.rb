@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
 require "tty-prompt"
+require_relative "ui_helper"
 
 module FlowEngine
   module CLI
     class Renderer
       attr_reader :prompt
+
+      include ::FlowEngine::CLI::UIHelper
 
       def initialize(prompt: TTY::Prompt.new)
         @prompt = prompt
@@ -55,6 +58,18 @@ module FlowEngine
       def render_display(node)
         puts "\n#{node.question}\n"
         prompt.keypress("Press any key to continue...")
+        sep(:green, "━")
+        nil
+      end
+
+      def render_display_fancy(node)
+        title = node.respond_to?(:decorations) ? node.decorations : nil
+        opts = {}
+        opts[:title] = { style: { top_left: title } } if title
+        puts box(node.question, bg: :blue, fg: :white, **opts)
+        puts node.question
+        prompt.keypress("Press any key to continue...")
+        sep(:green, "━")
         nil
       end
     end

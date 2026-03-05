@@ -37,8 +37,9 @@ RSpec.describe FlowEngine::CLI::Commands::Run do
       it "runs the flow to completion and outputs JSON" do
         output = capture_stdout { subject.call(flow_file: fixture_path) }
 
-        expect(output).to include("Flow completed!")
-        expect(output).to include('"greeting"')
+        expect(output).to include("Thank you for completing the intake!")
+        # JSON is written to stderr when no --output; stdout has UI (box, steps, success)
+        expect(output).to include("Step 1: greeting")
       end
 
       it "writes results to output file when specified" do
@@ -88,7 +89,7 @@ RSpec.describe FlowEngine::CLI::Commands::Run do
       it "navigates through business details and reaches summary" do
         output = capture_stdout { subject.call(flow_file: fixture_path) }
 
-        expect(output).to include("Flow completed!")
+        expect(output).to include("Thank you for completing the intake!")
       end
     end
 

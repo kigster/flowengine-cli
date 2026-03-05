@@ -2,35 +2,25 @@
 
 [![RSpec](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml) [![RuboCop](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml)
 
-Terminal-based interactive wizard runner for [FlowEngine](https://github.com/kigster/flowengine) flows. Define your flow once, run it in the terminal with rich TTY prompts, export Mermaid diagrams, and validate flow definitions -- all from the command line.
+FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` core gem. The core gem knows nothing about terminals, databases, or web frameworks. 
 
-FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` core gem. The core gem knows nothing about terminals, databases, or web frameworks. This gem provides the terminal interface.
+> [!IMPORTANT]
+> This gem provides the ANSI terminal CLI interface to data collection defined by [`flowengine`](https://rubygems.org/gems/flowengine)'s DSL flows.
 
-## Table of Contents
+The gem `flowengine` allows you to define complex flows that are meant to be the basis of multi-question wizards with arbitrary branching logic, and support for LLMs to shorten the wizard if the user describe their parameters in free form text. LLM then attempts to extract the structured information from that text, assigning answers to some of the questions in the flow. This allows the engine to skip some of the questions and arrive to the data completion much faster.
 
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Commands](#commands)
-  - [`run` -- Interactive Wizard](#run----interactive-wizard)
-  - [`graph` -- Export Mermaid Diagram](#graph----export-mermaid-diagram)
-  - [`validate` -- Validate Flow Definition](#validate----validate-flow-definition)
-  - [`version` -- Print Version](#version----print-version)
-- [Step Types & TTY Rendering](#step-types--tty-rendering)
-- [Flow Definition DSL](#flow-definition-dsl)
-  - [Available Rules](#available-rules)
-  - [Composing Rules](#composing-rules)
-- [In-Depth Walkthrough: Tax Intake](#in-depth-walkthrough-tax-intake)
-  - [The Flow Definition](#the-flow-definition)
-  - [Scenario 1: Simple W2 Filer](#scenario-1-simple-w2-filer)
-  - [Scenario 2: Business Owner with Crypto](#scenario-2-business-owner-with-crypto)
-  - [Scenario 3: Married Investor with Rentals and Foreign Accounts](#scenario-3-married-investor-with-rentals-and-foreign-accounts)
-  - [Scenario 4: Complex Multi-Business Filer with Charitable Donations](#scenario-4-complex-multi-business-filer-with-charitable-donations)
-- [In-Depth Walkthrough: Customer Onboarding](#in-depth-walkthrough-customer-onboarding)
-- [Graph Visualization Examples](#graph-visualization-examples)
-- [Architecture](#architecture)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
+> [!IMPORTANT]
+> At the moment the output of the data collection process it a multi-level JSON file. It is up to you to render it in a more user friendly way, or show it to the user as is, or save it to the database as the JSONB record.
+
+This gem — `flowengine-cli`, as we mentioned, — is an adapter, a wrapper so to speak, around the `flowengine`, which adds the ANSI terminal support, prompts and CLI UI based on some of the gems from the [TTY Toolkit](https://ttytoolkit.org/).
+
+The CLI gem allows you to:
+
+* run the CLI in the terminal with the rich TTY prompts
+* export the resulting flow-chart as a Mermaid diagram
+* validate the flow definitions
+
+---
 
 ## Installation
 
@@ -46,16 +36,32 @@ Or install directly:
 gem install flowengine-cli
 ```
 
+> [!IMPORTANT]
+> This installs two executables: `flowengine-cli` (for consistency) and also `flow` which is much easier to type. 
+>
+> ```bash
+> $ flow  --help
+> Commands:
+>    flow graph FLOW_FILE                # Export a flow definition as a Mermaid diagram
+>    flow run FLOW_FILE                  # Run a flow definition interactively
+>    flow validate FLOW_FILE             # Validate a flow definition file
+>    flow version                        # Print version information
+> ```
+
+
 ### Requirements
 
 - Ruby >= 4.0.1
-- [flowengine](https://github.com/kigster/flowengine) ~> 0.1
+- [flowengine](https://github.com1/kigster/flowengine) ~> 0.1
 
 ## Quick Start
 
 ### 1. Define a flow
 
 Create a file called `intake.rb`:
+
+> [!NOTE]
+> We'll use examples from the tax information collection that a professional preparer might want to collect before speaking with their customer, and save a chunk of time asking basic questions that would already be answered if their customer went through this intake process.
 
 ```ruby
 FlowEngine.define do
