@@ -39,7 +39,7 @@ FlowEngine.define do
   end
 
   step :summary do
-    type :display
+    type :display_fancy
     question "Thank you for completing the intake!"
   end
 end

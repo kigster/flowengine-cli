@@ -2,10 +2,18 @@ set shell := ["bash", "-c"]
 
 set dotenv-load
 
+[no-exit-message]
+recipes:
+    @just --choose
+
 # Boot the app
 test:
+    @echo "Ensuring bundle install is up to date..."
     @bundle check ||  bundle install -j 12
+    @echo "Running specs..."
     @bundle exec rspec --format documentation
+    @echo "Running rubocop..."
+    @bundle exec rubocop
 
 # Setup Ruby dependencies
 setup-ruby:
@@ -29,8 +37,28 @@ setup: setup-node setup-ruby
 cli *ARGS:
     ./cli {{ARGS}}
 
-validate-valid-json:
-    ./cli validate-json -f VALID-JSON/sample.json -s VALID-JSON/schema.json
+# Run a flow interactively: just run examples/01_hello_world.rb
+run file *ARGS:
+    @bundle exec exe/flowengine-cli run {{file}} {{ARGS}}
+
+# Export a flow as a Mermaid diagram: just graph examples/07_loan_application.rb
+graph file *ARGS:
+    @bundle exec exe/flowengine-cli graph {{file}} {{ARGS}}
+
+# Validate a flow definition: just validate examples/04_event_registration.rb
+validate file:
+    @bundle exec exe/flowengine-cli validate {{file}}
+
+# List available example flows
+examples:
+    #!/usr/bin/env bash
+    echo "Available examples (by complexity):"
+    echo ""
+    for f in examples/*.rb; do
+      head -3 "$f" | grep '# Example' | sed 's/^# /  /'
+      echo "    just run $f"
+      echo ""
+    done
 
 format:
     @bundle exec rubocop -a

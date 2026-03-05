@@ -1,21 +1,21 @@
 # frozen_string_literal: true
 
-require 'bundler/gem_tasks'
-require 'rspec/core/rake_task'
-require 'timeout'
-require 'yard'
+require "bundler/gem_tasks"
+require "rspec/core/rake_task"
+require "timeout"
+require "yard"
 
 def shell(*args)
-  puts "running: #{args.join(' ')}"
-  system(args.join(' '))
+  puts "running: #{args.join(" ")}"
+  system(args.join(" "))
 end
 
 task :clean do
-  shell('rm -rf pkg/ tmp/ coverage/ doc/ ' )
+  shell("rm -rf pkg/ tmp/ coverage/ doc/ ")
 end
 
 task gem: [:build] do
-  shell('gem install pkg/*')
+  shell("gem install pkg/*")
 end
 
 task permissions: [:clean] do
@@ -24,11 +24,10 @@ task permissions: [:clean] do
 end
 
 YARD::Rake::YardocTask.new(:doc) do |t|
-  t.files = %w(lib/**/*.rb exe/*.rb - README.md LICENSE.txt)
-  t.options.unshift('--title', '"FlowEngine CLI is the CLI for validating FlowEngine in the Terminal"')
-  t.after = -> { exec('open doc/index.html') } if RUBY_PLATFORM =~ /darwin/
+  t.files = %w[lib/**/*.rb exe/*.rb - README.md LICENSE.txt]
+  t.options.unshift("--title", '"FlowEngine CLI is the CLI for validating FlowEngine in the Terminal"')
+  t.after = -> { exec("open doc/index.html") } if RUBY_PLATFORM =~ /darwin/
 end
-
 
 task build: :permissions
 
