@@ -24,7 +24,7 @@ task permissions: [:clean] do
 end
 
 YARD::Rake::YardocTask.new(:doc) do |t|
-  t.files = %w[lib/**/*.rb exe/*.rb - README.md LICENSE.txt]
+  t.files = %w[lib/**/*.rb exe/*.rb - README.md LICENSE.txt CHANGELOG.md]
   t.options.unshift("--title", '"FlowEngine CLI is the CLI for validating FlowEngine in the Terminal"')
   t.after = -> { exec("open doc/index.html") } if RUBY_PLATFORM =~ /darwin/
 end

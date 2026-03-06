@@ -26,7 +26,7 @@ FlowEngine.define do
   end
 
   step :summary do
-    type :display_fancy
+    type :header
     decorations("Success!")
     question "Thank you for completing the intake!"
   end

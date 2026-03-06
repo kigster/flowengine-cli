@@ -9,6 +9,7 @@ require_relative "ui_helper"
 
 module FlowEngine
   module CLI
+    # Dry::CLI registry for flowengine-cli subcommands: run, graph, validate, version.
     module Commands
       extend Dry::CLI::Registry
 

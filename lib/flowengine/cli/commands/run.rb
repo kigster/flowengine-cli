@@ -7,12 +7,17 @@ require "tty-screen"
 module FlowEngine
   module CLI
     module Commands
+      # Runs a flow definition interactively via TTY prompts and writes the
+      # collected answers (and metadata) as JSON to stdout or a file.
       class Run < Dry::CLI::Command
         desc "Run a flow definition interactively"
 
         argument :flow_file, required: true, desc: "Path to flow definition (.rb file)"
         option :output, aliases: ["-o"], desc: "Output file for JSON results"
 
+        # @param flow_file [String] path to the flow definition .rb file
+        # @param options [Hash] :output => path to write JSON (optional)
+        # @return [void]
         def call(flow_file:, **options)
           engine = run_flow(flow_file)
           json_output = JSON.pretty_generate(build_result(flow_file, engine))
@@ -32,6 +37,8 @@ module FlowEngine
 
         private
 
+        # @param flow_file [String] path to flow definition
+        # @return [FlowEngine::Engine] engine after completion
         def run_flow(flow_file)
           definition = FlowLoader.load(flow_file)
           engine = FlowEngine::Engine.new(definition)
@@ -47,6 +54,9 @@ module FlowEngine
           engine
         end
 
+        # @param flow_file [String] path used to load the flow
+        # @param engine [FlowEngine::Engine] completed engine
+        # @return [Hash] result hash with flow_file, path_taken, answers, etc.
         def build_result(flow_file, engine)
           {
             flow_file: flow_file,
@@ -57,6 +67,9 @@ module FlowEngine
           }
         end
 
+        # @param path [String] output file path
+        # @param json_output [String] JSON string to write
+        # @return [void]
         def write_output(path, json_output)
           File.write(path, json_output)
           puts "\nResults saved to #{path}"
