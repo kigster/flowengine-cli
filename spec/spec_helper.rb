@@ -5,12 +5,12 @@ require "simplecov-lcov"
 
 SimpleCov::Formatter::LcovFormatter.config do |config|
   config.report_with_single_file = true
-  config.output_directory = 'coverage'
+  config.output_directory = "coverage"
 end
 
 SimpleCov.formatters = [
   SimpleCov::Formatter::HTMLFormatter,
-  SimpleCov::Formatter::LcovFormatter, # Add other formatters here
+  SimpleCov::Formatter::LcovFormatter # Add other formatters here
 ]
 
 SimpleCov.start do
