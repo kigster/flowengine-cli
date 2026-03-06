@@ -1,5 +1,6 @@
 /.bundle/
-/.yardoc
+/node_modules/
+/.yardoc/
 /_yardoc/
 /coverage/
 /doc/
@@ -9,5 +10,4 @@
 
 # rspec failure tracking
 .rspec_status
-/.rubymate
-/*.json
+/.rubymate/

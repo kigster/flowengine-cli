@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require "simplecov"
+
+SimpleCov.formatters = SimpleCov::Formatter::HTMLFormatter # Add other formatters here
+
 SimpleCov.start do
   add_filter "/spec/"
   enable_coverage :branch
