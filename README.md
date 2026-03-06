@@ -16,9 +16,21 @@ This gem — `flowengine-cli`, as we mentioned, — is an adapter, a wrapper so 
 
 The CLI gem allows you to:
 
-* run the CLI in the terminal with the rich TTY prompts
-* export the resulting flow-chart as a Mermaid diagram
-* validate the flow definitions
+* Run the CLI in the terminal with the rich TTY prompts, and upon user answering the questions save the ansnwers to a JSOM file.
+
+* Export the logic of the DSL questions into a flow-chart as a Mermaid diagram
+  
+* Validate the flow definitions DSL.
+
+There are multiple examples of the DSL in the `examples` folder.
+
+Run it like so:
+
+```bash
+flow run \
+   --output answers.json \
+   examples/07_loan_application.rb
+```
 
 ---
 
