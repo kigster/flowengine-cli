@@ -47,6 +47,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec-mocks"
   spec.add_development_dependency "rubocop", "~> 1.21"
   spec.add_development_dependency "simplecov"
-  spec.add_development_dependency "simplecov-lcov"
   spec.add_development_dependency "yard"
 end
