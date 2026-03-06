@@ -9,8 +9,12 @@ require "pastel"
 
 module FlowEngine
   module CLI
+    # Mixin that provides TTY::Box, Pastel, and screen helpers to CLI commands
+    # and the Renderer. Defines +box+, +sep+, +next_step+, +frame+, +info+,
+    # +success+, +error+, +warning+, and +width+ on the including class.
     module UIHelper
       class << self
+        # @return [Pastel] shared Pastel instance for colored output
         def pastel
           @pastel ||= Pastel.new
         end
@@ -32,6 +36,12 @@ module FlowEngine
           base.def_delegators :tty_screen, :width
 
           base.class_eval do
+            # Draw a bordered box with optional title.
+            # @param text [String] content to display
+            # @param title [String, nil] optional top-left title
+            # @param bg [Symbol] background color (e.g. :green, :blue)
+            # @param fg [Symbol] foreground color (e.g. :white)
+            # @return [void]
             def box(text, title: nil, bg: :green, fg: :white) # rubocop:disable Naming/MethodParameterName
               width = [width(), 80].min
               args = {
@@ -46,11 +56,19 @@ module FlowEngine
               frame(text, **args)
             end
 
+            # Print step progress line and separator.
+            # @param step_id [Symbol, String] current step identifier
+            # @param step_number [Integer] 1-based step index
+            # @return [void]
             def next_step(step_id, step_number)
               puts pastel.yellow("Step #{step_number}: #{step_id}")
               sep(:yellow, "━")
             end
 
+            # Print a horizontal separator line in the given color.
+            # @param color [Symbol] Pastel color (e.g. :yellow, :green)
+            # @param char [String] character to repeat (default "▪")
+            # @return [void]
             def sep(color = :yellow, char = "▪")
               puts pastel.send(color, (char * 80).to_s)
             end

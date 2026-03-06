@@ -60,12 +60,19 @@ examples:
       echo ""
     done
 
+# Formats minor syntax issues and writes the rest into a TODO file
 format:
     @bundle exec rubocop -a
     @bundle exec rubocop --auto-gen-config
 
+# Run all linters, in this case just rubocop
 lint: 
     @bundle exec rubocop
+
+# Generates YARD documentation into the ./doc folder, and opens ./doc/index.html
+doc:
+    @rake doc
+    @open doc/index.html
 
 check-all: lint test
 
