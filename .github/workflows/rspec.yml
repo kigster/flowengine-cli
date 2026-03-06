@@ -24,8 +24,13 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          bundle-cache: true
+          bundler-cache: true
       - name: Install the Gems
         run: bundle install -j 4
       - name: Run RSpecs
-        run: bundle exec rspec --format documentation
+        run: bundle exec rspec --format documentation -p 2
+
+      - uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/flowengine-cli.lcov
+          fail_ci_if_error: false
