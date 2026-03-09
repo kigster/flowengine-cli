@@ -3,6 +3,6 @@
 module FlowEngine
   module CLI
     # Semantic version of the flowengine-cli gem.
-    VERSION = "0.1.1"
+    VERSION = "0.1.2"
   end
 end

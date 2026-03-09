@@ -52,13 +52,15 @@ validate file:
 # List available example flows
 examples:
     #!/usr/bin/env bash
-    echo "Available examples (by complexity):"
-    echo ""
-    for f in examples/*.rb; do
-      head -3 "$f" | grep '# Example' | sed 's/^# /  /'
-      echo "    just run $f"
-      echo ""
-    done
+    if command fd>/dev/null 2>&1; then
+       fd --type file '.rb$' examples/
+    else
+       find examples -type f -name '*.rb'
+    fi
+    echo
+    echo "To run an example, type 'flow run examples/<example-file.rb>'"
+
+examples-list:
 
 # Formats minor syntax issues and writes the rest into a TODO file
 format:
