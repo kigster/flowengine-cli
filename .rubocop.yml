@@ -30,4 +30,15 @@ Metrics/MethodLength:
 Layout/LineLength:
   Max: 120
 
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/ParameterAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/HashAlignment:
+  EnforcedColonStyle: key
+  EnforcedHashRocketStyle: key
+  EnforcedLastArgumentHashStyle: always_ignore
+
 inherit_from: .rubocop_todo.yml

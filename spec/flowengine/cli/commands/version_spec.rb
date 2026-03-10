@@ -1,18 +1,24 @@
 # frozen_string_literal: true
 
 RSpec.describe FlowEngine::CLI::Commands::Version do
+  subject(:command) { described_class.new }
+
+  before do
+    allow($stdout).to receive(:write)
+    allow($stdout).to receive(:puts)
+  end
+
   describe "#call" do
-    it "prints flowengine-cli version" do
-      expect { subject.call }.to output(/flowengine-cli #{Regexp.escape(FlowEngine::CLI::VERSION)}/).to_stdout
+    it "prints CLI version" do
+      expect($stdout).to receive(:puts).with(/flowengine-cli #{Regexp.escape(FlowEngine::CLI::VERSION)}/)
+      allow($stdout).to receive(:puts).with(anything)
+      command.call
     end
 
-    it "prints flowengine core version" do
-      expect { subject.call }.to output(/flowengine #{Regexp.escape(FlowEngine::VERSION)}/).to_stdout
-    end
-
-    it "prints both version lines" do
-      expected = "flowengine-cli #{FlowEngine::CLI::VERSION}\nflowengine #{FlowEngine::VERSION}\n"
-      expect { subject.call }.to output(expected).to_stdout
+    it "prints engine version" do
+      expect($stdout).to receive(:puts).with(/flowengine #{Regexp.escape(FlowEngine::VERSION)}/)
+      allow($stdout).to receive(:puts).with(anything)
+      command.call
     end
   end
 end

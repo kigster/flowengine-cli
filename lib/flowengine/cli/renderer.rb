@@ -32,7 +32,65 @@ module FlowEngine
         end
       end
 
+      # Renders the introduction prompt and collects multiline free-form text.
+      # @param introduction [FlowEngine::Introduction] the introduction config
+      # @return [String, nil] user's introduction text, or nil if skipped
+      def render_introduction(introduction)
+        print_introduction_header(introduction)
+        collect_multiline_text(introduction.maxlength)
+      end
+
       private
+
+      # @param introduction [FlowEngine::Introduction]
+      # @return [void]
+      def print_introduction_header(introduction)
+        box("Introduction", bg: :cyan, fg: :white)
+        puts "\n#{pastel.bold(introduction.label)}\n"
+        puts pastel.dim(introduction.placeholder) unless introduction.placeholder.empty?
+        puts pastel.dim("(max #{introduction.maxlength} characters)") if introduction.maxlength
+        puts ""
+      end
+
+      # Collects multiline text input. User submits by pressing Enter on an empty line.
+      # @param maxlength [Integer, nil] optional character limit
+      # @return [String, nil] the collected text or nil if empty
+      def collect_multiline_text(maxlength)
+        puts pastel.dim("Type your response below. Press Enter twice to submit, or Enter once to skip.")
+        sep(:cyan, "─")
+
+        lines = read_lines(maxlength)
+        text = lines.join("\n")
+        sep(:cyan, "─")
+        text.empty? ? nil : text
+      end
+
+      # @param maxlength [Integer, nil]
+      # @return [Array<String>]
+      def read_lines(maxlength)
+        lines = []
+        loop do
+          line = prompt.ask(">") { |q| q.required(false) }
+          break if line.nil? || line.empty?
+
+          lines << line
+          enforce_maxlength(lines, maxlength)
+        end
+        lines
+      end
+
+      # Pops the last line if total text exceeds maxlength.
+      # @param lines [Array<String>]
+      # @param maxlength [Integer, nil]
+      def enforce_maxlength(lines, maxlength)
+        return unless maxlength
+
+        total = lines.join("\n").length
+        return unless total > maxlength
+
+        puts pastel.red("Text exceeds #{maxlength} characters (#{total}). Last line removed.")
+        lines.pop
+      end
 
       # @param node [FlowEngine::Node] multi_select step
       # @return [Array<String>]
