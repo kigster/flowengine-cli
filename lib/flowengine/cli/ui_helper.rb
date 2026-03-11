@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+# rubocop:disable Metrics/MethodLength
 
 require "forwardable"
 require "tty-box"

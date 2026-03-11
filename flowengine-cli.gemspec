@@ -34,7 +34,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "dry-cli", "~> 1.0"
-  spec.add_dependency "flowengine", "~> 0.1"
+  spec.add_dependency "flowengine"
   spec.add_dependency "pastel"
   spec.add_dependency "tty-box", "~> 0.7"
   spec.add_dependency "tty-prompt", "~> 0.23"

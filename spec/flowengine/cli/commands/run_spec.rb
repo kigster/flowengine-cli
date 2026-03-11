@@ -109,13 +109,19 @@ RSpec.describe FlowEngine::CLI::Commands::Run do
 
   describe "#build_llm_client" do
     it "returns nil when no API key is available" do
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with("ANTHROPIC_API_KEY", nil).and_return(nil)
       allow(ENV).to receive(:fetch).with("OPENAI_API_KEY", nil).and_return(nil)
-      result = command.send(:build_llm_client, provider: "openai", model: "gpt-4o-mini")
-      expect(result).to be_nil
+      allow(ENV).to receive(:fetch).with("GEMINI_API_KEY", nil).and_return(nil)
+      expect(command.send(:build_llm_client)).to be_nil
     end
 
-    it "returns a client when api_key option is provided" do
-      client = command.send(:build_llm_client, api_key: "sk-test-key", model: "gpt-4o-mini")
+    it "returns a client when an API key is available" do
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with("ANTHROPIC_API_KEY", nil).and_return("sk-ant-test")
+      allow(ENV).to receive(:fetch).with("OPENAI_API_KEY", nil).and_return(nil)
+      allow(ENV).to receive(:fetch).with("GEMINI_API_KEY", nil).and_return(nil)
+      client = command.send(:build_llm_client)
       expect(client).to be_a(FlowEngine::LLM::Client)
     end
   end
@@ -164,7 +170,7 @@ RSpec.describe FlowEngine::CLI::Commands::Run do
     context "when sensitive data is detected" do
       before do
         allow(llm_client).to receive(:parse_introduction).and_raise(
-          FlowEngine::SensitiveDataError, "SSN detected"
+          FlowEngine::Errors::SensitiveDataError, "SSN detected"
         )
       end
 
@@ -178,7 +184,7 @@ RSpec.describe FlowEngine::CLI::Commands::Run do
     context "when LLM fails" do
       before do
         allow(llm_client).to receive(:parse_introduction).and_raise(
-          FlowEngine::LLMError, "API unavailable"
+          FlowEngine::Errors::LLMError, "API unavailable"
         )
       end
 
