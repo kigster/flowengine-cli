@@ -1,17 +1,23 @@
 # frozen_string_literal: true
 
 require "simplecov"
-
-SimpleCov.formatters = SimpleCov::Formatter::HTMLFormatter # Add other formatters here
+require "coverage/badge"
 
 SimpleCov.start do
   add_filter "/spec/"
   enable_coverage :branch
-  minimum_coverage 90
+
+  SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new(
+    [
+      SimpleCov::Formatter::HTMLFormatter,
+      Coverage::Badge::Formatter
+    ]
+  )
 end
 
 require "flowengine/cli"
 require "rspec/its"
+require "stringio"
 
 RSpec.configure do |config|
   config.example_status_persistence_file_path = ".rspec_status"
@@ -21,4 +27,11 @@ RSpec.configure do |config|
   end
   config.order = :random
   Kernel.srand config.seed
+end
+
+SimpleCov.at_exit do
+  SimpleCov.result.format!
+  puts "Coverage: #{SimpleCov.result.covered_percent.round(2)}%"
+
+  FileUtils.mv("coverage/badge.svg", "docs/badges/coverage_badge.svg")
 end

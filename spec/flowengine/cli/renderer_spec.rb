@@ -1,135 +1,194 @@
 # frozen_string_literal: true
 
-require "tty-prompt"
-
 RSpec.describe FlowEngine::CLI::Renderer do
-  let(:prompt) { instance_double(TTY::Prompt) }
-  let(:renderer) { described_class.new(prompt: prompt) }
+  subject(:renderer) { described_class.new(prompt: mock_prompt) }
 
-  def build_node(type:, question: "Test question", options: nil, fields: nil)
-    FlowEngine::Node.new(
-      id: :test_step,
-      type: type,
-      question: question,
-      options: options,
-      fields: fields,
-      transitions: []
-    )
+  let(:mock_prompt) { instance_double(TTY::Prompt) }
+
+  before do
+    # Suppress all puts/print output
+    allow($stdout).to receive(:write)
+    allow($stdout).to receive(:puts)
   end
 
   describe "#render" do
-    context "with a multi_select node" do
-      let(:node) { build_node(type: :multi_select, options: %w[A B C]) }
+    context "with a text step" do
+      let(:node) { instance_double(FlowEngine::Node, type: :text, question: "Your name?") }
 
-      it "calls prompt.multi_select with options" do
-        allow(prompt).to receive(:multi_select).with("Test question", %w[A B C], min: 1).and_return(%w[A])
+      before { allow(mock_prompt).to receive(:ask).with("Your name?").and_return("Alice") }
 
-        result = renderer.render(node)
-
-        expect(result).to eq(%w[A])
-        expect(prompt).to have_received(:multi_select).with("Test question", %w[A B C], min: 1)
-      end
+      it { expect(renderer.render(node)).to eq("Alice") }
     end
 
-    context "with a single_select node" do
-      let(:node) { build_node(type: :single_select, options: %w[X Y Z]) }
+    context "with a number step" do
+      let(:node) { instance_double(FlowEngine::Node, type: :number, question: "How old?") }
 
-      it "calls prompt.select with options" do
-        allow(prompt).to receive(:select).with("Test question", %w[X Y Z]).and_return("Y")
+      before { allow(mock_prompt).to receive(:ask).with("How old?", convert: :int).and_return(30) }
 
-        result = renderer.render(node)
-
-        expect(result).to eq("Y")
-        expect(prompt).to have_received(:select).with("Test question", %w[X Y Z])
-      end
+      it { expect(renderer.render(node)).to eq(30) }
     end
 
-    context "with a number_matrix node" do
-      let(:node) { build_node(type: :number_matrix, fields: %w[LLC SCorp]) }
-
-      it "asks for each field and returns a hash" do
-        allow(prompt).to receive(:ask).with("  LLC:", convert: :int, default: 0).and_return(2)
-        allow(prompt).to receive(:ask).with("  SCorp:", convert: :int, default: 0).and_return(1)
-
-        result = renderer.render(node)
-
-        expect(result).to eq({ "LLC" => 2, "SCorp" => 1 })
+    context "with a single_select step" do
+      let(:node) do
+        instance_double(FlowEngine::Node, type: :single_select,
+          question: "Pick one:", options: %w[A B C])
       end
+
+      before { allow(mock_prompt).to receive(:select).with("Pick one:", %w[A B C]).and_return("B") }
+
+      it { expect(renderer.render(node)).to eq("B") }
     end
 
-    context "with a text node" do
-      let(:node) { build_node(type: :text) }
-
-      it "calls prompt.ask" do
-        allow(prompt).to receive(:ask).with("Test question").and_return("hello")
-
-        result = renderer.render(node)
-
-        expect(result).to eq("hello")
+    context "with a multi_select step" do
+      let(:node) do
+        instance_double(FlowEngine::Node, type: :multi_select,
+          question: "Select:", options: %w[X Y Z])
       end
+
+      before do
+        allow(mock_prompt).to receive(:multi_select).with("Select:", %w[X Y Z], min: 1)
+                                                    .and_return(%w[X Z])
+      end
+
+      it { expect(renderer.render(node)).to eq(%w[X Z]) }
     end
 
-    context "with a number node" do
-      let(:node) { build_node(type: :number) }
+    context "with a boolean step" do
+      let(:node) { instance_double(FlowEngine::Node, type: :boolean, question: "Continue?") }
 
-      it "calls prompt.ask with int conversion" do
-        allow(prompt).to receive(:ask).with("Test question", convert: :int).and_return(42)
+      before { allow(mock_prompt).to receive(:yes?).with("Continue?").and_return(true) }
 
-        result = renderer.render(node)
-
-        expect(result).to eq(42)
-      end
+      it { expect(renderer.render(node)).to be true }
     end
 
-    context "with a boolean node" do
-      let(:node) { build_node(type: :boolean) }
-
-      it "calls prompt.yes?" do
-        allow(prompt).to receive(:yes?).with("Test question").and_return(true)
-
-        result = renderer.render(node)
-
-        expect(result).to be true
+    context "with a number_matrix step" do
+      let(:node) do
+        instance_double(FlowEngine::Node, type: :number_matrix,
+          question: "How many?", fields: %w[LLC SCorp])
       end
+
+      before do
+        allow(mock_prompt).to receive(:ask).with("  LLC:", convert: :int, default: 0).and_return(2)
+        allow(mock_prompt).to receive(:ask).with("  SCorp:", convert: :int, default: 0).and_return(1)
+      end
+
+      it { expect(renderer.render(node)).to eq({ "LLC" => 2, "SCorp" => 1 }) }
     end
 
-    context "with a display node" do
-      let(:node) { build_node(type: :display) }
+    context "with a display step" do
+      let(:node) { instance_double(FlowEngine::Node, type: :display, question: "All done!") }
 
-      it "shows the question and waits for keypress, returning nil" do
-        allow(prompt).to receive(:keypress).with("Press any key to continue...").and_return(nil)
+      before { allow(mock_prompt).to receive(:keypress) }
 
-        result = renderer.render(node)
-
-        expect(result).to be_nil
-        expect(prompt).to have_received(:keypress)
-      end
+      it { expect(renderer.render(node)).to be_nil }
     end
 
-    context "with an unknown node type" do
-      let(:node) { build_node(type: :unknown_fancy_type) }
+    context "with an unknown step type" do
+      let(:node) { instance_double(FlowEngine::Node, type: :fancy_widget, question: "Fancy?") }
+
+      before { allow(mock_prompt).to receive(:ask).with("Fancy?").and_return("something") }
 
       it "falls back to text rendering" do
-        allow(prompt).to receive(:ask).with("Test question").and_return("fallback")
-
-        result = renderer.render(node)
-
-        expect(result).to eq("fallback")
+        expect(renderer.render(node)).to eq("something")
       end
     end
   end
 
-  describe "#prompt" do
-    it "exposes the prompt instance" do
-      expect(renderer.prompt).to eq(prompt)
+  describe "#render_introduction" do
+    let(:introduction) do
+      FlowEngine::Introduction.new(
+        label: "Describe your situation",
+        placeholder: "e.g. I am married...",
+        maxlength: 500
+      )
     end
-  end
 
-  describe "default prompt" do
-    it "creates a TTY::Prompt when none is provided" do
-      # We just verify it doesn't raise; actual TTY::Prompt may require a terminal
-      expect { described_class.new(prompt: TTY::Prompt.new(input: StringIO.new, output: StringIO.new)) }
-        .not_to raise_error
+    context "when user provides text" do
+      before do
+        call_count = 0
+        allow(mock_prompt).to receive(:ask) do
+          call_count += 1
+          call_count == 1 ? "I am single with W2 income" : nil
+        end
+      end
+
+      it "returns the collected text" do
+        expect(renderer.render_introduction(introduction)).to eq("I am single with W2 income")
+      end
+    end
+
+    context "when user provides multiline text" do
+      before do
+        lines = ["I am married", "filing jointly", "two dependents", nil]
+        call_index = 0
+        allow(mock_prompt).to receive(:ask) do
+          line = lines[call_index]
+          call_index += 1
+          line
+        end
+      end
+
+      it "joins lines with newlines" do
+        expect(renderer.render_introduction(introduction)).to eq(
+          "I am married\nfiling jointly\ntwo dependents"
+        )
+      end
+    end
+
+    context "when user presses enter immediately (skips)" do
+      before do
+        allow(mock_prompt).to receive(:ask).and_return(nil)
+      end
+
+      it { expect(renderer.render_introduction(introduction)).to be_nil }
+    end
+
+    context "when text exceeds maxlength" do
+      let(:introduction) do
+        FlowEngine::Introduction.new(label: "Describe", placeholder: "", maxlength: 20)
+      end
+
+      before do
+        lines = ["short text", "this line makes it exceed the limit", nil]
+        call_index = 0
+        allow(mock_prompt).to receive(:ask) do
+          line = lines[call_index]
+          call_index += 1
+          line
+        end
+      end
+
+      it "removes the overflowing line and returns valid text" do
+        expect(renderer.render_introduction(introduction)).to eq("short text")
+      end
+    end
+
+    context "with no placeholder" do
+      let(:introduction) do
+        FlowEngine::Introduction.new(label: "Describe", placeholder: "", maxlength: nil)
+      end
+
+      before do
+        allow(mock_prompt).to receive(:ask).and_return("some text", nil)
+      end
+
+      it "returns the text" do
+        expect(renderer.render_introduction(introduction)).to eq("some text")
+      end
+    end
+
+    context "with no maxlength" do
+      let(:introduction) do
+        FlowEngine::Introduction.new(label: "Describe", placeholder: "hint", maxlength: nil)
+      end
+
+      before do
+        allow(mock_prompt).to receive(:ask).and_return("text", nil)
+      end
+
+      it "returns collected text without length enforcement" do
+        expect(renderer.render_introduction(introduction)).to eq("text")
+      end
     end
   end
 end

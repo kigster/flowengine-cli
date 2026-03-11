@@ -40,6 +40,14 @@ module FlowEngine
           puts "  Start step: #{definition.start_step_id}"
           puts "  Total steps: #{definition.step_ids.length}"
           puts "  Steps: #{definition.step_ids.join(", ")}"
+          print_introduction_info(definition.introduction) if definition.introduction
+        end
+
+        # @param intro [FlowEngine::Introduction]
+        # @return [void]
+        def print_introduction_info(intro)
+          detail = intro.maxlength ? "(maxlength: #{intro.maxlength})" : "(no length limit)"
+          puts "  Introduction: yes #{detail}"
         end
 
         # @param errors [Array<String>]

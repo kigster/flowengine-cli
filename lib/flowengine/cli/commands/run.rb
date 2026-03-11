@@ -14,12 +14,17 @@ module FlowEngine
 
         argument :flow_file, required: true, desc: "Path to flow definition (.rb file)"
         option :output, aliases: ["-o"], desc: "Output file for JSON results"
+        option :provider, default: "openai", desc: "LLM provider for introduction parsing (openai)"
+        option :model, default: "gpt-4o-mini", desc: "LLM model for introduction parsing"
+        option :api_key, desc: "LLM API key (default: OPENAI_API_KEY env var)"
+        option :skip_introduction, type: :boolean, default: false,
+          desc: "Skip the introduction prompt even if defined"
 
         # @param flow_file [String] path to the flow definition .rb file
-        # @param options [Hash] :output => path to write JSON (optional)
+        # @param options [Hash] CLI options
         # @return [void]
         def call(flow_file:, **options)
-          engine = run_flow(flow_file)
+          engine = run_flow(flow_file, **options)
           json_output = JSON.pretty_generate(build_result(flow_file, engine))
 
           if options[:output]
@@ -38,13 +43,16 @@ module FlowEngine
         private
 
         # @param flow_file [String] path to flow definition
+        # @param options [Hash] CLI options (provider, model, api_key, skip_introduction)
         # @return [FlowEngine::Engine] engine after completion
-        def run_flow(flow_file)
+        def run_flow(flow_file, **options)
           definition = FlowLoader.load(flow_file)
           engine = FlowEngine::Engine.new(definition)
           renderer = Renderer.new
 
           box("FlowEngine Interactive Wizard")
+
+          handle_introduction(engine, renderer, **options) if show_introduction?(definition, options)
 
           until engine.finished?
             next_step(engine.current_step_id, engine.history.length)
@@ -54,17 +62,72 @@ module FlowEngine
           engine
         end
 
+        # @param definition [FlowEngine::Definition]
+        # @param options [Hash]
+        # @return [Boolean]
+        def show_introduction?(definition, options)
+          definition.introduction && !options[:skip_introduction]
+        end
+
+        # Prompts for introduction text, optionally parses it via LLM.
+        # @param engine [FlowEngine::Engine]
+        # @param renderer [Renderer]
+        # @param options [Hash] provider, model, api_key
+        def handle_introduction(engine, renderer, **)
+          intro = engine.definition.introduction
+          text = renderer.render_introduction(intro)
+          return if text.nil? || text.strip.empty?
+
+          llm_client = build_llm_client(**)
+          if llm_client
+            submit_with_llm(engine, text, llm_client)
+          else
+            warning("No LLM API key found. Introduction text saved but answers not pre-filled.")
+            engine.instance_variable_set(:@introduction_text, text)
+          end
+        end
+
+        # Calls engine.submit_introduction with error handling.
+        # @param engine [FlowEngine::Engine]
+        # @param text [String]
+        # @param llm_client [FlowEngine::LLM::Client]
+        def submit_with_llm(engine, text, llm_client)
+          engine.submit_introduction(text, llm_client: llm_client)
+          skipped = engine.answers.keys & engine.history.map(&:to_sym)
+          return if skipped.empty?
+
+          info("LLM pre-filled #{skipped.length} answer(s) from your introduction.")
+        rescue FlowEngine::SensitiveDataError => e
+          warning("Sensitive data detected: #{e.message}\nIntroduction discarded. Proceeding with all steps.")
+        rescue FlowEngine::ValidationError => e
+          warning("Introduction validation failed: #{e.message}\nProceeding with all steps.")
+        rescue FlowEngine::LLMError => e
+          warning("LLM error: #{e.message}\nProceeding with all steps.")
+        end
+
+        # Builds an LLM client if an API key is available.
+        # @return [FlowEngine::LLM::Client, nil]
+        def build_llm_client(**options)
+          api_key = options[:api_key] || ENV.fetch("OPENAI_API_KEY", nil)
+          return nil unless api_key
+
+          adapter = FlowEngine::LLM::OpenAIAdapter.new(api_key: api_key)
+          FlowEngine::LLM::Client.new(adapter: adapter, model: options[:model] || "gpt-4o-mini")
+        end
+
         # @param flow_file [String] path used to load the flow
         # @param engine [FlowEngine::Engine] completed engine
         # @return [Hash] result hash with flow_file, path_taken, answers, etc.
         def build_result(flow_file, engine)
-          {
+          result = {
             flow_file: flow_file,
             path_taken: engine.history,
             answers: engine.answers,
             steps_completed: engine.history.length,
             completed_at: Time.now.iso8601
           }
+          result[:introduction_text] = engine.introduction_text if engine.introduction_text
+          result
         end
 
         # @param path [String] output file path

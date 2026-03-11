@@ -1,8 +1,8 @@
 # FlowEngine CLI
 
-[![RSpec](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml) [![RuboCop](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml)
+[![RSpec](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rspec.yml)  &nbsp; [![RuboCop](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml/badge.svg)](https://github.com/kigster/flowengine-cli/actions/workflows/rubocop.yml) &nbsp; ![Coverage](docs/badges/coverage_badge.svg)
 
-FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` core gem. The core gem knows nothing about terminals, databases, or web frameworks. 
+FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` core gem. The core gem knows nothing about terminals, databases, or web frameworks.
 
 > [!IMPORTANT]
 > This gem provides the ANSI terminal CLI interface to data collection defined by [`flowengine`](https://rubygems.org/gems/flowengine)'s DSL flows.
@@ -49,7 +49,7 @@ gem install flowengine-cli
 ```
 
 > [!IMPORTANT]
-> This installs two executables: `flowengine-cli` (for consistency) and also `flow` which is much easier to type. 
+> This installs two executables: `flowengine-cli` (for consistency) and also `flow` which is much easier to type.
 >
 > ```bash
 > $ flow  --help
@@ -60,11 +60,10 @@ gem install flowengine-cli
 >    flow version                        # Print version information
 > ```
 
-
 ### Requirements
 
-- Ruby >= 4.0.1
-- [flowengine](https://github.com1/kigster/flowengine) ~> 0.1
+* Ruby >= 4.0.1
+* [flowengine](https://github.com1/kigster/flowengine) ~> 0.1
 
 ## Quick Start
 
@@ -76,7 +75,17 @@ Create a file called `intake.rb`:
 > We'll use examples from the tax information collection that a professional preparer might want to collect before speaking with their customer, and save a chunk of time asking basic questions that would already be answered if their customer went through this intake process.
 
 ```ruby
+require 'flowengine'
+
 FlowEngine.define do
+  introduction label: "Please describe your tax situation in a " \
+                      "few sentences. Do not under no circumstances " \
+                      "include any personally identifiable information, " \
+                      "such as your address, or a social security number.",
+         placeholder: "Eg. I have two W-2s from my two jobs, a rental " \                   
+                      "property and a side business.", 
+           maxlength: 2000
+
   start :filing_status
 
   step :filing_status do
@@ -133,11 +142,13 @@ flowengine-cli run <flow_file.rb> [-o output.json]
 Loads a flow definition, presents each step as an interactive terminal prompt, and outputs the collected answers as JSON when complete.
 
 **Arguments:**
+
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `flow_file` | Yes | Path to a `.rb` file containing a `FlowEngine.define` block |
 
 **Options:**
+
 | Option | Alias | Description |
 |--------|-------|-------------|
 | `--output` | `-o` | Write JSON results to this file |
@@ -214,6 +225,7 @@ flowengine-cli graph <flow_file.rb> [-o diagram.mmd]
 Exports the flow definition as a [Mermaid](https://mermaid.js.org/) flowchart diagram. Useful for documentation, visualization, and reviewing flow logic.
 
 **Options:**
+
 | Option | Alias | Description |
 |--------|-------|-------------|
 | `--output` | `-o` | Write diagram to file (default: stdout) |
@@ -256,9 +268,9 @@ flowengine-cli validate <flow_file.rb>
 
 Validates a flow definition file for structural correctness. Checks for:
 
-- **Start step existence** -- is the declared start step defined?
-- **Transition targets** -- do all transitions point to steps that exist?
-- **Reachability** -- are there orphan steps unreachable from the start?
+* **Start step existence** -- is the declared start step defined?
+* **Transition targets** -- do all transitions point to steps that exist?
+* **Reachability** -- are there orphan steps unreachable from the start?
 
 **Example (valid flow):**
 
