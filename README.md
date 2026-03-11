@@ -7,7 +7,7 @@ FlowEngine CLI is a UI adapter that sits on top of the pure-Ruby `flowengine` co
 > [!IMPORTANT]
 > This gem provides the ANSI terminal CLI interface to data collection defined by [`flowengine`](https://rubygems.org/gems/flowengine)'s DSL flows.
 
-The gem `flowengine` allows you to define complex flows that are meant to be the basis of multi-question wizards with arbitrary branching logic, and support for LLMs to shorten the wizard if the user describe their parameters in free form text. LLM then attempts to extract the structured information from that text, assigning answers to some of the questions in the flow. This allows the engine to skip some of the questions and arrive to the data completion much faster.
+The gem `flowengine` allows you to define complex flows that are meant to be the basis of multi-question wizards with arbitrary branching logic, and support for LLMs to shorten the wizard if the user describes their parameters in free form text. LLM then attempts to extract the structured information from that text, assigning answers to some of the questions in the flow. This allows the engine to skip some of the questions and arrive to the data completion much faster.
 
 > [!IMPORTANT]
 > At the moment the output of the data collection process it a multi-level JSON file. It is up to you to render it in a more user friendly way, or show it to the user as is, or save it to the database as the JSONB record.
@@ -16,7 +16,7 @@ This gem — `flowengine-cli`, as we mentioned, — is an adapter, a wrapper so 
 
 The CLI gem allows you to:
 
-* Run the CLI in the terminal with the rich TTY prompts, and upon user answering the questions save the ansnwers to a JSOM file.
+* Run the CLI in the terminal with the rich TTY prompts, and upon user answering the questions save the answers to a JSON file.
 
 * Export the logic of the DSL questions into a flow-chart as a Mermaid diagram
   
@@ -63,7 +63,7 @@ gem install flowengine-cli
 ### Requirements
 
 * Ruby >= 4.0.1
-* [flowengine](https://github.com/kigster/flowengine) >= 0.3.0
+* [flowengine](https://github.com/kigster/flowengine) >= 0.3.1
 
 ## Quick Start
 
@@ -79,7 +79,7 @@ require 'flowengine'
 
 FlowEngine.define do
   introduction label: "Please describe your tax situation in a " \
-                      "few sentences. Do not under no circumstances " \
+                      "few sentences. Do not under any circumstances " \
                       "include any personally identifiable information, " \
                       "such as your address, or a social security number.",
          placeholder: "Eg. I have two W-2s from my two jobs, a rental " \                   
@@ -298,8 +298,8 @@ Flow definition has errors:
 
 ```bash
 $ flowengine-cli version
-flowengine-cli 0.1.0
-flowengine 0.1.0
+flowengine-cli 0.2.1
+flowengine 0.3.1
 ```
 
 ## Step Types & TTY Rendering
