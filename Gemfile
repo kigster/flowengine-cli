@@ -5,4 +5,4 @@ source "https://rubygems.org"
 gemspec
 
 gem "coverage-badge"
-gem "flowengine"
+gem "flowengine", ">= 0.3.1"
