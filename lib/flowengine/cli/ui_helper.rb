@@ -79,4 +79,4 @@ module FlowEngine
   end
 end
 
-# rubocop:enable Metrics/MethodLength, Metrics/AbcSize
+# rubocop:enable Metrics/MethodLength

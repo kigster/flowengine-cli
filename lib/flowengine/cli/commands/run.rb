@@ -32,7 +32,7 @@ module FlowEngine
         rescue FlowEngine::CLI::Error => e
           error(e.message)
           exit 1
-        rescue FlowEngine::Error => e
+        rescue FlowEngine::Errors::Error => e
           error("Engine error: #{e.message}")
           exit 1
         end
@@ -52,7 +52,7 @@ module FlowEngine
           handle_introduction(engine, renderer, **options) if show_introduction?(definition, options)
 
           until engine.finished?
-            next_step(engine.current_step_id, engine.history.length)
+            next_step(engine.current_step_id, engine.history.length + 1)
             engine.answer(renderer.render(engine.current_step))
           end
 

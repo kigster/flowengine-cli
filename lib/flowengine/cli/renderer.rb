@@ -95,13 +95,22 @@ module FlowEngine
       # @param node [FlowEngine::Node] multi_select step
       # @return [Array<String>]
       def render_multi_select(node)
-        prompt.multi_select(node.question, node.options, min: 1)
+        prompt.multi_select(node.question, select_options(node), min: 1)
       end
 
       # @param node [FlowEngine::Node] single_select step
       # @return [String]
       def render_single_select(node)
-        prompt.select(node.question, node.options)
+        prompt.select(node.question, select_options(node))
+      end
+
+      # Returns the option_labels hash (key => label) when available, falling
+      # back to the plain options array. TTY::Prompt displays hash values as
+      # labels and returns the corresponding key.
+      # @param node [FlowEngine::Node]
+      # @return [Hash, Array]
+      def select_options(node)
+        node.respond_to?(:option_labels) && node.option_labels ? node.option_labels : node.options
       end
 
       # @param node [FlowEngine::Node] number_matrix step
