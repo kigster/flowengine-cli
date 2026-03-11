@@ -26,7 +26,7 @@ module FlowEngine
         rescue FlowEngine::CLI::Error => e
           warn "Error: #{e.message}"
           exit 1
-        rescue FlowEngine::Error => e
+        rescue FlowEngine::Errors::Error => e
           warn "Definition error: #{e.message}"
           exit 1
         end

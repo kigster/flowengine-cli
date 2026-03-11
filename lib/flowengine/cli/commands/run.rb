@@ -10,14 +10,11 @@ module FlowEngine
       # Runs a flow definition interactively via TTY prompts and writes the
       # collected answers (and metadata) as JSON to stdout or a file.
       class Run < Dry::CLI::Command
-        desc "Run a flow definition interactively"
+        desc "Run a flow definition interactively, to choose an LLM specify it's API Key"
 
         argument :flow_file, required: true, desc: "Path to flow definition (.rb file)"
         option :output, aliases: ["-o"], desc: "Output file for JSON results"
-        option :provider, default: "openai", desc: "LLM provider for introduction parsing (openai)"
-        option :model, default: "gpt-4o-mini", desc: "LLM model for introduction parsing"
-        option :api_key, desc: "LLM API key (default: OPENAI_API_KEY env var)"
-        option :skip_introduction, type: :boolean, default: false,
+        option :skip_introduction, aliases: ["-s"], type: :boolean, default: false,
           desc: "Skip the introduction prompt even if defined"
 
         # @param flow_file [String] path to the flow definition .rb file
@@ -35,7 +32,7 @@ module FlowEngine
         rescue FlowEngine::CLI::Error => e
           error(e.message)
           exit 1
-        rescue FlowEngine::Error => e
+        rescue FlowEngine::Errors::Error => e
           error("Engine error: #{e.message}")
           exit 1
         end
@@ -55,7 +52,7 @@ module FlowEngine
           handle_introduction(engine, renderer, **options) if show_introduction?(definition, options)
 
           until engine.finished?
-            next_step(engine.current_step_id, engine.history.length)
+            next_step(engine.current_step_id, engine.history.length + 1)
             engine.answer(renderer.render(engine.current_step))
           end
 
@@ -97,22 +94,24 @@ module FlowEngine
           return if skipped.empty?
 
           info("LLM pre-filled #{skipped.length} answer(s) from your introduction.")
-        rescue FlowEngine::SensitiveDataError => e
+        rescue FlowEngine::Errors::SensitiveDataError => e
           warning("Sensitive data detected: #{e.message}\nIntroduction discarded. Proceeding with all steps.")
-        rescue FlowEngine::ValidationError => e
+        rescue FlowEngine::Errors::ValidationError => e
           warning("Introduction validation failed: #{e.message}\nProceeding with all steps.")
-        rescue FlowEngine::LLMError => e
+        rescue FlowEngine::Errors::LLMError => e
           warning("LLM error: #{e.message}\nProceeding with all steps.")
         end
 
         # Builds an LLM client if an API key is available.
         # @return [FlowEngine::LLM::Client, nil]
-        def build_llm_client(**options)
-          api_key = options[:api_key] || ENV.fetch("OPENAI_API_KEY", nil)
-          return nil unless api_key
-
-          adapter = FlowEngine::LLM::OpenAIAdapter.new(api_key: api_key)
-          FlowEngine::LLM::Client.new(adapter: adapter, model: options[:model] || "gpt-4o-mini")
+        def build_llm_client(**)
+          FlowEngine::LLM.auto_client(
+            anthropic_api_key: ENV.fetch("ANTHROPIC_API_KEY", nil),
+            gemini_api_key: ENV.fetch("GEMINI_API_KEY", nil),
+            openai_api_key: ENV.fetch("OPENAI_API_KEY", nil)
+          )
+        rescue FlowEngine::Errors::LLMError
+          nil
         end
 
         # @param flow_file [String] path used to load the flow

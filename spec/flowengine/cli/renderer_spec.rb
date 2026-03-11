@@ -31,7 +31,7 @@ RSpec.describe FlowEngine::CLI::Renderer do
     context "with a single_select step" do
       let(:node) do
         instance_double(FlowEngine::Node, type: :single_select,
-          question: "Pick one:", options: %w[A B C])
+          question: "Pick one:", options: %w[A B C], option_labels: nil)
       end
 
       before { allow(mock_prompt).to receive(:select).with("Pick one:", %w[A B C]).and_return("B") }
@@ -39,10 +39,25 @@ RSpec.describe FlowEngine::CLI::Renderer do
       it { expect(renderer.render(node)).to eq("B") }
     end
 
+    context "with a single_select step with option labels" do
+      let(:node) do
+        instance_double(FlowEngine::Node, type: :single_select,
+          question: "Pick one:", options: %w[a b],
+          option_labels: { "a" => "Label A", "b" => "Label B" })
+      end
+
+      before do
+        allow(mock_prompt).to receive(:select)
+          .with("Pick one:", { "a" => "Label A", "b" => "Label B" }).and_return("a")
+      end
+
+      it { expect(renderer.render(node)).to eq("a") }
+    end
+
     context "with a multi_select step" do
       let(:node) do
         instance_double(FlowEngine::Node, type: :multi_select,
-          question: "Select:", options: %w[X Y Z])
+          question: "Select:", options: %w[X Y Z], option_labels: nil)
       end
 
       before do

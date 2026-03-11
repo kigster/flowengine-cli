@@ -63,7 +63,7 @@ gem install flowengine-cli
 ### Requirements
 
 * Ruby >= 4.0.1
-* [flowengine](https://github.com1/kigster/flowengine) ~> 0.1
+* [flowengine](https://github.com/kigster/flowengine) >= 0.3.0
 
 ## Quick Start
 
@@ -152,6 +152,7 @@ Loads a flow definition, presents each step as an interactive terminal prompt, a
 | Option | Alias | Description |
 |--------|-------|-------------|
 | `--output` | `-o` | Write JSON results to this file |
+| `--skip_introduction` | `-s` | Skip the introduction prompt even if the flow defines one |
 
 **What happens at runtime:**
 
@@ -367,6 +368,143 @@ transition to: :special_path,
              )
            )
 ```
+
+## LLM-Powered Introduction Parsing
+
+The `introduction` DSL directive lets the user describe their situation in free-form text before the wizard begins. When an LLM API key is available, the engine sends this text to the LLM along with the flow's step metadata. The LLM extracts structured answers from the prose, pre-fills matching steps, and the wizard skips those steps entirely — arriving at data completion much faster.
+
+### Defining an Introduction
+
+Add `introduction` before your `start` declaration:
+
+```ruby
+FlowEngine.define do
+  introduction label: "Please describe your tax situation in a few sentences.\n" \
+                      "Do not under any circumstances provide personal information,\n" \
+                      "such as your address or social security number.\n",
+    placeholder: "Example: I have two W-2s from my two jobs, a rental property and a side business",
+    maxlength: 2000
+
+  start :filing_status
+
+  step :filing_status do
+    type :single_select
+    question "What is your filing status for 2025?"
+    options({
+      "single" => "Single",
+      "married_filing_jointly" => "Married Filing Jointly",
+      "married_filing_separately" => "Married Filing Separately",
+      "head_of_household" => "Head of Household"
+    })
+    transition to: :dependents
+  end
+
+  step :dependents do
+    type :number
+    question "How many dependents do you have?"
+    transition to: :income_types
+  end
+
+  # ... remaining steps ...
+end
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `label` | Yes | Prompt text shown to the user |
+| `placeholder` | No | Example text displayed in the input field |
+| `maxlength` | No | Maximum character count for the introduction text |
+
+### Setting Up LLM API Keys
+
+The CLI auto-detects the LLM provider from environment variables, checked in this order:
+
+| Priority | Environment Variable | Provider |
+|----------|---------------------|----------|
+| 1 | `ANTHROPIC_API_KEY` | Anthropic (Claude) |
+| 2 | `OPENAI_API_KEY` | OpenAI (GPT) |
+| 3 | `GEMINI_API_KEY` | Google (Gemini) |
+
+Set one (or more) in your shell or in a `.env` file:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+If you use [direnv](https://direnv.net/), add your keys to a `.env` file and load them from `.envrc`:
+
+```bash
+# .envrc
+if [[ -f .env ]]; then
+  eval "$(cat .env | sed '/^#.*/d; /^$/d; s/^/export /g')"
+fi
+```
+
+If no API key is found, the wizard still works — it simply runs all steps without pre-filling.
+
+### How It Works
+
+When the user types an introduction like:
+
+> *"I am married filing jointly with 2 kids. I have two W-2 jobs, a rental property, and some crypto investments. I donated about $8,000 to charity last year."*
+
+The LLM parses this into structured answers:
+
+```json
+{
+  "filing_status": "married_filing_jointly",
+  "dependents": 2,
+  "income_types": ["W2", "Investment", "Rental"],
+  "investment_details": ["Crypto"],
+  "deduction_types": ["Charitable"],
+  "charitable_amount": 8000
+}
+```
+
+The engine pre-fills these 6 answers and skips those steps. The wizard only prompts for the remaining unanswered steps — saving significant time for users with complex situations.
+
+### Skipping the Introduction
+
+To bypass the introduction prompt and run all steps manually:
+
+```bash
+flow run examples/08_tax_preparer.rb --skip_introduction
+flow run examples/08_tax_preparer.rb -s
+```
+
+### JSON Output with Introduction
+
+When an introduction is provided, the JSON output includes the original text:
+
+```json
+{
+  "flow_file": "tax_intake.rb",
+  "introduction_text": "I am married filing jointly with 2 kids...",
+  "path_taken": ["state_filing", "foreign_accounts", "..."],
+  "answers": {
+    "filing_status": "married_filing_jointly",
+    "dependents": 2,
+    "...": "..."
+  },
+  "steps_completed": 11,
+  "completed_at": "2026-03-11T10:30:00-07:00"
+}
+```
+
+Notice that `steps_completed` is lower than the total step count — the pre-filled steps were skipped.
+
+### Error Handling
+
+The LLM integration degrades gracefully:
+
+| Condition | Behavior |
+|-----------|----------|
+| No API key set | Introduction text saved, all steps run manually |
+| LLM returns invalid JSON | Warning printed, all steps run manually |
+| LLM API error (rate limit, auth failure) | Warning printed, all steps run manually |
+| Sensitive data detected (SSN, etc.) | Introduction discarded, all steps run manually |
+
+The wizard never fails because of LLM issues — it always falls back to the full interactive flow.
 
 ## In-Depth Walkthrough: Tax Intake
 

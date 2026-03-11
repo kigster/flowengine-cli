@@ -1,18 +1,18 @@
-# rubocop:disable Metrics/BlockLength
 # frozen_string_literal: true
 
 require "flowengine"
 
 # Example 8: Tax Preparer
 #
-# This example demonstrates a more complex flow with multiple levels of branching and conditional logic.
-#
+# This example demonstrates a more complex flow
+# with multiple levels of branching and conditional logic.
 # Run: flow run examples/08_tax_preparer.rb
+
 FlowEngine.define do
-  introduction label: "Please describe your tax situation in a few sentences. " \
-                      "Do not under no circumstances provide any personal information, " \
-                      "such as your address, or a social security number.",
-    placeholder: "Eg. I have two W-2s from my two jobs, a rental property and a side business.",
+  introduction label: "Please describe your tax situation in a few sentences.\n" \
+                      "Do not under any circumstances provide personal information,\n" \
+                      "such as your address or social security number.\n",
+    placeholder: "Example: I have two W-2s from my two jobs, a rental property and a side business",
     maxlength: 2000
 
   start :filing_status
@@ -22,10 +22,10 @@ FlowEngine.define do
     question "What is your filing status for 2025?"
     options({
       "single" => "Single",
-              "married_filing_jointly" => "Married Filing Jointly",
-              "married_filing_separately" => "Married Filing Separately",
-              "head_of_household" => "Head of Household",
-              "widowed" => "Widowed"
+      "married_filing_jointly" => "Married Filing Jointly",
+      "married_filing_separately" => "Married Filing Separately",
+      "head_of_household" => "Head of Household",
+      "widowed" => "Widowed"
     })
     transition to: :dependents
   end
@@ -117,28 +117,20 @@ FlowEngine.define do
     question "Which additional deductions apply to you?"
     options %w[Medical Charitable Education Mortgage None]
     transition to: :charitable_amount, if_rule: contains(:deduction_types, "Charitable")
-    transition to: :contact_info
+    transition to: :name
   end
 
-  step :charitable_contribution do
-    type :single_select
-    question "Do you have any charitable contributions over $5,000 with receipts?"
-    options %w[yes no]
+  step :charitable_amount do
+    type :number
+    question "How much did you donate to charity in 2025?"
     transition to: :charitable_documentation, if_rule: greater_than(:charitable_amount, 5000)
-    transition to: :contact_info
+    transition to: :name
   end
 
   step :charitable_documentation do
     type :text
-    question "For charitable contributions over $5,000, please list the organizations and amounts."
-    transition to: :contact_info
-  end
-
-  step :thanks do
-    type :display
-    question "Thank you! Your tax preparation is complete. The last step remaining is " \
-             "to get your name and email so that we can send you our tax preparation estimate."
-    transition to: :review
+    question "For charitable contributions over $5,000, please describe what sort of paperwork you have available."
+    transition to: :name
   end
 
   step :name do
@@ -150,14 +142,11 @@ FlowEngine.define do
   step :email do
     type :text
     question "Your Email Please:"
-    transition to: :review
+    transition to: :thanks
   end
 
-  step :finish do
+  step :thanks do
     type :display
-    question "Thank you! Press Continue and you'll get an email from us " \
-             "with your tax preparation estimate. We thank you for your business!"
+    question "Thank you! We will review your information and send you a tax preparation estimate."
   end
 end
-
-# rubocop:enable Metrics/BlockLength

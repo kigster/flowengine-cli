@@ -42,3 +42,6 @@ Layout/HashAlignment:
   EnforcedLastArgumentHashStyle: always_ignore
 
 inherit_from: .rubocop_todo.yml
+
+Metrics/AbcSize:
+  Enabled: false
